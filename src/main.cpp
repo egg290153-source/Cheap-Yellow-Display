@@ -7,6 +7,14 @@ using namespace std;
 
 TFT_eSPI tft = TFT_eSPI();
 
+void checkData();
+void displayData();
+void paraData();
+
+const uint8_t numChars = 32;
+char receivedChars[numChars];
+boolean newData = false;
+
 struct tele{
   int MPH;
   int RPMS;
@@ -14,6 +22,7 @@ struct tele{
 };
 
 tele car;
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -39,29 +48,57 @@ void setup() {
 }
 
 void loop() {
-  
-  if(Serial.available() > 0){
-    String data = Serial.readStringUntil('\n');
+  checkData();
 
-    data.trim(); 
-
-    stringstream ss(data.c_str());
-
-    ss >> car.MPH;
-    ss >> car.RPMS;
-    ss >> car.Gear;
-    
-    tft.fillRect(90, 37, 60, 60, TFT_WHITE);
-    tft.setCursor(95, 55);
-    tft.print(car.MPH);
-    
-    tft.fillRect(240, 37, 60, 60, TFT_WHITE);
-    tft.setCursor(245, 55);
-    tft.print(car.Gear.c_str());
-
-    tft.fillRect(120, 147, 100, 60, TFT_WHITE);
-    tft.setCursor(120, 165);
-    tft.print(car.RPMS);
-
+  if(newData == true){
+  paraData();
+  displayData();
+  newData = false;
   }
+
+}
+
+void checkData(){
+  static uint8_t ndx = 0;
+  char rc;
+  char endMarker = '\n';
+
+  while(Serial.available() > 0 && newData == false){
+    rc = Serial.read();
+
+    if(rc != endMarker){
+      receivedChars[ndx] = rc;
+      ndx++;
+      if(ndx >= numChars){
+        ndx = numChars - 1;
+      }
+    }else{
+      receivedChars[ndx] = '\0';
+      ndx = 0;
+      newData = true;
+    }
+  }
+
+}
+
+void displayData(){
+  tft.fillRect(90, 37, 60, 60, TFT_WHITE);
+  tft.setCursor(95, 55);
+  tft.print(car.MPH);
+    
+  tft.fillRect(240, 37, 60, 60, TFT_WHITE);
+  tft.setCursor(245, 55);
+  tft.print(car.Gear.c_str());
+
+  tft.fillRect(120, 147, 100, 60, TFT_WHITE);
+  tft.setCursor(120, 165);
+  tft.print(car.RPMS);
+}
+
+void paraData(){
+  stringstream ss(receivedChars);
+
+  ss >> car.MPH;
+  ss >> car.RPMS;
+  ss >> car.Gear;
 }
